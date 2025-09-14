@@ -41,7 +41,7 @@ public class UserController {
     public User updateUser(@RequestBody User user) {
         log.info("Получен запрос на обновление пользователя: {}", user);
 
-        if (!users.containsKey(user.getId())) {
+        if (user.getId() <= 0 || !users.containsKey(user.getId())) {
             log.warn("Пользователь с id {} не найден", user.getId());
             throw new ValidationException("Пользователь с указанным id не найден");
         }
