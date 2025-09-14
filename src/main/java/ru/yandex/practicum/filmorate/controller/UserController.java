@@ -17,7 +17,7 @@ import java.util.Map;
 @Slf4j
 public class UserController {
     private final Map<Integer, User> users = new HashMap<>();
-    private int nextId;
+    private int nextId = 1;
 
     @PostMapping
     public User createUser(@RequestBody User user) {
