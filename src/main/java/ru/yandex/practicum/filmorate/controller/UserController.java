@@ -17,7 +17,7 @@ import java.util.Map;
 @Slf4j
 public class UserController {
     private final Map<Integer, User> users = new HashMap<>();
-    private int nextId = 1;
+    private int nextId;
 
     @PostMapping
     public User createUser(@RequestBody User user) {
@@ -41,7 +41,7 @@ public class UserController {
     public User updateUser(@RequestBody User user) {
         log.info("Получен запрос на обновление пользователя: {}", user);
 
-        if (user.getId() <= 0 || !users.containsKey(user.getId())) {
+        if (!users.containsKey(user.getId())) {
             log.warn("Пользователь с id {} не найден", user.getId());
             throw new ValidationException("Пользователь с указанным id не найден");
         }

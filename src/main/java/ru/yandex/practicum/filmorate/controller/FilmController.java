@@ -18,7 +18,7 @@ import java.util.Map;
 @Slf4j
 public class FilmController {
     private final Map<Integer, Film> films = new HashMap<>();
-    private int nextId = 1;
+    private int nextId;
 
     private static final LocalDate MIN_RELEASE_DATE = LocalDate.of(1895, 12, 28);
 
@@ -39,7 +39,7 @@ public class FilmController {
     public Film updateFilm(@RequestBody Film film) {
         log.info("Получен запрос на обновление фильма: {}", film);
 
-        if (film.getId() <= 0 || !films.containsKey(film.getId())) {
+        if (!films.containsKey(film.getId())) {
             log.warn("Фильм с id {} не найден", film.getId());
             throw new ValidationException("Фильм с указанным id не найден");
         }
