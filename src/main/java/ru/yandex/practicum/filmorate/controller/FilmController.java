@@ -39,10 +39,6 @@ public class FilmController {
     public Film updateFilm(@RequestBody Film film) {
         log.info("Получен запрос на обновление фильма: {}", film);
 
-        if (film.getId() <= 0 || !films.containsKey(film.getId())) {
-            log.warn("Фильм с id {} не найден", film.getId());
-            throw new ValidationException("Фильм с указанным id не найден");
-        }
 
         validateFilm(film);
 
