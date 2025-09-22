@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.controller;
 
 
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -9,6 +10,7 @@ import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
 import java.time.LocalDate;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +21,7 @@ import java.util.Map;
 public class FilmController {
     private final Map<Integer, Film> films = new HashMap<>();
     private int nextId = 1;
+
     private final FilmService filmService;
 
     private static final LocalDate MIN_RELEASE_DATE = LocalDate.of(1895, 12, 28);
@@ -34,20 +37,25 @@ public class FilmController {
         Film createdFilm = filmService.create(film);
         log.info("Фильм успешно создан: {}", createdFilm);
         return createdFilm;
+
     }
 
     @PutMapping
     public Film updateFilm(@RequestBody Film film) {
         log.info("Получен запрос на обновление фильма: {}", film);
+
         Film updatedFilm = filmService.update(film);
         log.info("Фильм успешно обновлен: {}", updatedFilm);
         return updatedFilm;
+
     }
 
     @GetMapping
     public List<Film> getAllFilms() {
         log.info("Получен запрос на получение всех фильмов");
+
         return filmService.getAll();
+
     }
 
     private void validateFilm(Film film) {
@@ -72,6 +80,7 @@ public class FilmController {
         }
     }
 
+
     @PutMapping("/{id}/like/{userId}")
     public void addLike(@PathVariable int id, @PathVariable int userId) {
         log.info("Получен запрос на добавление лайка фильму {} от пользователя {}", id, userId);
@@ -89,5 +98,6 @@ public class FilmController {
         log.info("Получен запрос на получение {} популярных фильмов", count);
         return filmService.getPopular(count);
     }
+
 
 }

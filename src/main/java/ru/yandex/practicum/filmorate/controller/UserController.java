@@ -8,6 +8,7 @@ import ru.yandex.practicum.filmorate.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
 
+
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,6 +21,7 @@ import java.util.Map;
 public class UserController {
     private final Map<Integer, User> users = new HashMap<>();
     private int nextId = 1;
+
     private final UserService userService;
 
     @Autowired
@@ -27,12 +29,15 @@ public class UserController {
         this.userService = userService;
     }
 
+
     @PostMapping
     public User createUser(@RequestBody User user) {
         log.info("Получен запрос на создание пользователя: {}", user);
+
         User createdUser = userService.create(user);
         log.info("Пользователь успешно создан: {}", createdUser);
         return createdUser;
+
     }
 
     @PutMapping
@@ -41,6 +46,7 @@ public class UserController {
         User updatedUser = userService.update(user);
         log.info("Пользователь успешно обновлен: {}", updatedUser);
         return updatedUser;
+
     }
 
     @GetMapping
@@ -53,6 +59,7 @@ public class UserController {
     public User getUser(@PathVariable int id) {
         log.info("Получен запрос на получение пользователя с id: {}", id);
         return userService.getById(id);
+
     }
 
     private void validateUser(User user) {
@@ -104,4 +111,5 @@ public class UserController {
         log.info("Получен запрос на получение общих друзей пользователей {} и {}", id, otherId);
         return userService.getCommonFriends(id, otherId);
     }
+
 }
