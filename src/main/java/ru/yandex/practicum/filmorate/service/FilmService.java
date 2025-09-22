@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.ValidationException;
@@ -35,8 +36,7 @@ public class FilmService {
 
     public Film getById(int id) {
         return filmStorage.getById(id)
-                .orElseThrow(() -> new ru.yandex.practicum.filmorate.NotFoundException(
-                        "Фильм с id " + id + " не найден"));
+                .orElseThrow(() -> new NotFoundException("Фильм с id " + id + " не найден"));
     }
 
     public void addLike(int filmId, int userId) {

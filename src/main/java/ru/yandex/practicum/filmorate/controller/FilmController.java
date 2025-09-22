@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.controller;
 
 
 
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -32,7 +33,7 @@ public class FilmController {
     }
 
     @PostMapping
-    public Film createFilm(@RequestBody Film film) {
+    public Film createFilm(@Valid @RequestBody Film film) {
         log.info("Получен запрос на создание фильма: {}", film);
         Film createdFilm = filmService.create(film);
         log.info("Фильм успешно создан: {}", createdFilm);
@@ -41,7 +42,7 @@ public class FilmController {
     }
 
     @PutMapping
-    public Film updateFilm(@RequestBody Film film) {
+    public Film updateFilm(@Valid @RequestBody Film film) {
         log.info("Получен запрос на обновление фильма: {}", film);
 
         Film updatedFilm = filmService.update(film);
