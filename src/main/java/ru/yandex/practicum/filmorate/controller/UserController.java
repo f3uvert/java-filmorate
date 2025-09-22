@@ -10,7 +10,6 @@ import ru.yandex.practicum.filmorate.service.UserService;
 
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -88,6 +87,7 @@ public class UserController {
             log.debug("Имя пользователя установлено равным логину: {}", user.getLogin());
         }
     }
+
     @PutMapping("/{id}/friends/{friendId}")
     public void addFriend(@PathVariable int id, @PathVariable int friendId) {
         log.info("Получен запрос на добавление в друзья: пользователь {} добавляет {}", id, friendId);
