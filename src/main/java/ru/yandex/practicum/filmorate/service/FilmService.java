@@ -6,6 +6,8 @@ import ru.yandex.practicum.filmorate.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.ValidationException;
+import ru.yandex.practicum.filmorate.storage.UserStorage;
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -14,11 +16,14 @@ public class FilmService {
     private static final LocalDate MIN_RELEASE_DATE = LocalDate.of(1895, 12, 28);
 
     private final FilmStorage filmStorage;
+    private final UserStorage userStorage;
 
     @Autowired
-    public FilmService(FilmStorage filmStorage) {
+    public FilmService(FilmStorage filmStorage, UserStorage userStorage) {
         this.filmStorage = filmStorage;
+        this.userStorage = userStorage;
     }
+
 
     public List<Film> getAll() {
         return filmStorage.getAll();
@@ -40,10 +45,22 @@ public class FilmService {
     }
 
     public void addLike(int filmId, int userId) {
+        userStorage.getById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id " + userId + " не найден"));
+
+        filmStorage.getById(filmId)
+                .orElseThrow(() -> new NotFoundException("Фильм с id " + filmId + " не найден"));
+
         filmStorage.addLike(filmId, userId);
     }
 
     public void removeLike(int filmId, int userId) {
+        userStorage.getById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id " + userId + " не найден"));
+
+        filmStorage.getById(filmId)
+                .orElseThrow(() -> new NotFoundException("Фильм с id " + filmId + " не найден"));
+
         filmStorage.removeLike(filmId, userId);
     }
 
