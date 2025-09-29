@@ -3,7 +3,6 @@ package ru.yandex.practicum.filmorate.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.NotFoundException;
-import ru.yandex.practicum.filmorate.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 import java.util.List;
@@ -22,12 +21,12 @@ public class UserService {
     }
 
     public User create(User user) {
-        validateUser(user);
+     //   validateUser(user);
         return userStorage.create(user);
     }
 
     public User update(User user) {
-        validateUser(user);
+     //   validateUser(user);
         return userStorage.update(user);
     }
 
@@ -51,7 +50,7 @@ public class UserService {
     public List<User> getCommonFriends(int userId, int otherId) {
         return userStorage.getCommonFriends(userId, otherId);
     }
-
+    /*
     private void validateUser(User user) {
         if (user.getEmail() == null || user.getEmail().isBlank() || !user.getEmail().contains("@")) {
             throw new ValidationException("Email должен содержать символ @");
@@ -69,6 +68,8 @@ public class UserService {
             throw new ValidationException("Дата рождения не может быть в будущем");
         }
     }
+
+     */
 
 
 

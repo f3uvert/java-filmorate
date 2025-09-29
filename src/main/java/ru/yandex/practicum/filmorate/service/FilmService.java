@@ -3,7 +3,6 @@ package ru.yandex.practicum.filmorate.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.NotFoundException;
-import ru.yandex.practicum.filmorate.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
@@ -30,12 +29,12 @@ public class FilmService {
     }
 
     public Film create(Film film) {
-        validateFilm(film);
+      //  validateFilm(film);
         return filmStorage.create(film);
     }
 
     public Film update(Film film) {
-        validateFilm(film);
+       // validateFilm(film);
         return filmStorage.update(film);
     }
 
@@ -67,6 +66,7 @@ public class FilmService {
     public List<Film> getPopular(int count) {
         return filmStorage.getPopular(count);
     }
+/*
 
     private void validateFilm(Film film) {
         if (film.getName() == null || film.getName().isBlank()) {
@@ -85,6 +85,8 @@ public class FilmService {
             throw new ValidationException("Продолжительность фильма должна быть положительным числом");
         }
     }
+
+ */
 
 
 
