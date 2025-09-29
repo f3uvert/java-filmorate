@@ -155,7 +155,7 @@ public class UserDbStorage implements UserStorage {
         return jdbcTemplate.query(sql, userRowMapper, userId, otherId);
     }
 
-    private Set<Integer> getFriendsIds(Integer userId) {
+    private Set<Integer> getFriendsIds(int userId) {
         String sql = "SELECT friend_id FROM friends WHERE user_id = ?";
         List<Integer> friends = jdbcTemplate.query(sql,
                 (rs, rowNum) -> rs.getInt("friend_id"), userId);
