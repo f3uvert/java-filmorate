@@ -34,15 +34,23 @@ public class FilmService {
 
     public Film create(Film film) {
         validateFilm(film);
-        validateMpa(film.getMpa());
-        validateGenres(film.getGenres());
+        // Гарантируем наличие MPA
+        if (film.getMpa() == null) {
+            Film.Mpa defaultMpa = new Film.Mpa();
+            defaultMpa.setId(1);
+            film.setMpa(defaultMpa);
+        }
         return filmStorage.create(film);
     }
 
     public Film update(Film film) {
         validateFilm(film);
-        validateMpa(film.getMpa());
-        validateGenres(film.getGenres());
+        // Гарантируем наличие MPA
+        if (film.getMpa() == null) {
+            Film.Mpa defaultMpa = new Film.Mpa();
+            defaultMpa.setId(1);
+            film.setMpa(defaultMpa);
+        }
         return filmStorage.update(film);
     }
 

@@ -13,10 +13,9 @@ import ru.yandex.practicum.filmorate.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.sql.*;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.sql.Date;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Repository
 @Primary
@@ -87,19 +86,28 @@ public class FilmDbStorage implements FilmStorage {
         String sql = "SELECT g.* FROM genres g " +
                 "JOIN film_genres fg ON g.id = fg.genre_id " +
                 "WHERE fg.film_id = ? ORDER BY g.id";
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Film.Genre genre = new Film.Genre();
-            genre.setId(rs.getInt("id"));
-            genre.setName(rs.getString("name"));
-            return genre;
-        }, filmId);
+        try {
+            return jdbcTemplate.query(sql, (rs, rowNum) -> {
+                Film.Genre genre = new Film.Genre();
+                genre.setId(rs.getInt("id"));
+                genre.setName(rs.getString("name"));
+                return genre;
+            }, filmId);
+        } catch (Exception e) {
+            System.err.println("Error getting genres for film " + filmId + ": " + e.getMessage());
+            return new ArrayList<>();
+        }
     }
 
     private void saveGenres(Film film) {
         if (film.getGenres() != null && !film.getGenres().isEmpty()) {
+            Set<Integer> uniqueGenreIds = film.getGenres().stream()
+                    .map(Film.Genre::getId)
+                    .collect(Collectors.toSet());
+
             String sql = "INSERT INTO film_genres (film_id, genre_id) VALUES (?, ?)";
-            for (Film.Genre genre : film.getGenres()) {
-                jdbcTemplate.update(sql, film.getId(), genre.getId());
+            for (Integer genreId : uniqueGenreIds) {
+                jdbcTemplate.update(sql, film.getId(), genreId);
             }
         }
     }
@@ -119,14 +127,14 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Film create(Film film) {
-        if (film.getMpa() != null && film.getMpa().getId() > 0) {
-            validateMpaExists(film.getMpa().getId());
+        // Гарантируем, что у фильма есть MPA
+        if (film.getMpa() == null) {
+            Film.Mpa defaultMpa = new Film.Mpa();
+            defaultMpa.setId(1); // G рейтинг по умолчанию
+            film.setMpa(defaultMpa);
         }
 
-
-        validateGenresExist(film.getGenres());
-
-        String sql = "INSERT INTO films (name, description, release_date, duration) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO films (name, description, release_date, duration, mpa_id) VALUES (?, ?, ?, ?, ?)";
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
@@ -136,13 +144,12 @@ public class FilmDbStorage implements FilmStorage {
             stmt.setString(2, film.getDescription());
             stmt.setDate(3, film.getReleaseDate() != null ? Date.valueOf(film.getReleaseDate()) : null);
             stmt.setInt(4, film.getDuration());
+            stmt.setInt(5, film.getMpa().getId()); // Всегда устанавливаем mpa_id
             return stmt;
         }, keyHolder);
 
         film.setId(keyHolder.getKey().intValue());
-
         saveGenres(film);
-
         saveLikes(film);
 
         return film;
@@ -150,6 +157,13 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Film update(Film film) {
+        // Гарантируем, что у фильма есть MPA
+        if (film.getMpa() == null) {
+            Film.Mpa defaultMpa = new Film.Mpa();
+            defaultMpa.setId(1); // G рейтинг по умолчанию
+            film.setMpa(defaultMpa);
+        }
+
         String sql = "UPDATE films SET name = ?, description = ?, release_date = ?, duration = ?, mpa_id = ? WHERE id = ?";
 
         int updated = jdbcTemplate.update(sql,
@@ -157,7 +171,7 @@ public class FilmDbStorage implements FilmStorage {
                 film.getDescription(),
                 film.getReleaseDate() != null ? Date.valueOf(film.getReleaseDate()) : null,
                 film.getDuration(),
-                film.getMpa() != null ? film.getMpa().getId() : null,
+                film.getMpa().getId(), // Всегда обновляем mpa_id
                 film.getId());
 
         if (updated == 0) {
@@ -165,7 +179,6 @@ public class FilmDbStorage implements FilmStorage {
         }
 
         updateGenres(film);
-
         updateLikes(film);
 
         return film;
