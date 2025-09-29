@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 @Qualifier("filmDbStorage")
 public class FilmDbStorage implements FilmStorage {
 
-    private final JdbcTemplate jdbcTemplate;
+    private JdbcTemplate jdbcTemplate;
 
     @Autowired
     public FilmDbStorage(JdbcTemplate jdbcTemplate) {
@@ -48,22 +48,33 @@ public class FilmDbStorage implements FilmStorage {
         List<Film.Genre> genres = getGenresForFilm(film.getId());
         film.setGenres(genres);
 
-        Integer mpaId = rs.getInt("mpa_id");
+
         Film.Mpa mpa = new Film.Mpa();
-        if (mpaId != null && mpaId > 0) {
-            mpa.setId(mpaId);
-            try {
-                Film.Mpa fullMpa = getMpaById(mpaId);
-                if (fullMpa != null && fullMpa.getName() != null) {
-                    mpa.setName(fullMpa.getName());
+        try {
+            int mpaId = rs.getInt("mpa_id");
+            if (!rs.wasNull() && mpaId > 0) {
+                mpa.setId(mpaId);
+                // Загружаем название MPA
+                try {
+                    String mpaName = jdbcTemplate.queryForObject(
+                            "SELECT name FROM mpa_ratings WHERE id = ?",
+                            String.class, mpaId
+                    );
+                    mpa.setName(mpaName != null ? mpaName : "Unknown");
+                } catch (EmptyResultDataAccessException e) {
+                    mpa.setName("Unknown");
                 }
-            } catch (Exception e) {
-                System.err.println("Could not load MPA name for id: " + mpaId);
+            } else {
+                // Если mpa_id NULL или 0 - дефолтный MPA
+                mpa.setId(1);
+                mpa.setName("G");
             }
-        } else {
+        } catch (Exception e) {
+            // При любой ошибке - дефолтный MPA
             mpa.setId(1);
             mpa.setName("G");
         }
+        film.setMpa(mpa);
 
         return film;
     };
@@ -130,7 +141,8 @@ public class FilmDbStorage implements FilmStorage {
         // Гарантируем, что у фильма есть MPA
         if (film.getMpa() == null) {
             Film.Mpa defaultMpa = new Film.Mpa();
-            defaultMpa.setId(1); // G рейтинг по умолчанию
+            defaultMpa.setId(1);
+            defaultMpa.setName("G");// G рейтинг по умолчанию
             film.setMpa(defaultMpa);
         }
 
