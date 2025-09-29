@@ -45,8 +45,57 @@ public class FilmDbStorage implements FilmStorage {
         Set<Integer> likes = getLikesIds(film.getId());
         film.setLikes(likes);
 
+        List<Film.Genre> genres = getGenresForFilm(film.getId());
+        film.setGenres(genres);
+
         return film;
     };
+
+    // Методы для работы с MPA
+    private Film.Mpa getMpaById(int mpaId) {
+        String sql = "SELECT * FROM mpa_ratings WHERE id = ?";
+        try {
+            return jdbcTemplate.queryForObject(sql, (rs, rowNum) -> {
+                Film.Mpa mpa = new Film.Mpa();
+                mpa.setId(rs.getInt("id"));
+                mpa.setName(rs.getString("name"));
+                return mpa;
+            }, mpaId);
+        } catch (EmptyResultDataAccessException e) {
+            return null;
+        }
+    }
+
+    // Методы для работы с жанрами
+    private List<Film.Genre> getGenresForFilm(int filmId) {
+        String sql = "SELECT g.* FROM genres g " +
+                "JOIN film_genres fg ON g.id = fg.genre_id " +
+                "WHERE fg.film_id = ? ORDER BY g.id";
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            Film.Genre genre = new Film.Genre();
+            genre.setId(rs.getInt("id"));
+            genre.setName(rs.getString("name"));
+            return genre;
+        }, filmId);
+    }
+
+    private void saveGenres(Film film) {
+        if (film.getGenres() != null && !film.getGenres().isEmpty()) {
+            String sql = "INSERT INTO film_genres (film_id, genre_id) VALUES (?, ?)";
+            for (Film.Genre genre : film.getGenres()) {
+                jdbcTemplate.update(sql, film.getId(), genre.getId());
+            }
+        }
+    }
+
+    private void updateGenres(Film film) {
+        // Удаляем старые жанры
+        String deleteSql = "DELETE FROM film_genres WHERE film_id = ?";
+        jdbcTemplate.update(deleteSql, film.getId());
+
+        // Добавляем новые
+        saveGenres(film);
+    }
 
     @Override
     public List<Film> getAll() {
