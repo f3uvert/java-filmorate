@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.storage;
 
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Primary;
@@ -9,6 +10,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
+import ru.yandex.practicum.filmorate.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.sql.*;
@@ -56,6 +58,9 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public User create(User user) {
+        if (user.getLogin().contains(" ")) {
+            throw new ValidationException("Логин не может содержать пробелы");
+        }
         String sql = "INSERT INTO users (email, login, name, birthday) VALUES (?, ?, ?, ?)";
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
@@ -65,15 +70,19 @@ public class UserDbStorage implements UserStorage {
             stmt.setString(1, user.getEmail());
             stmt.setString(2, user.getLogin());
             stmt.setString(3, user.getName());
-            stmt.setDate(4, user.getBirthday() != null ? Date.valueOf(user.getBirthday()) : null);
+
+            if (user.getBirthday() != null) {
+                stmt.setDate(4, Date.valueOf(user.getBirthday()));
+            } else {
+                stmt.setNull(4, Types.DATE);
+            }
+
             return stmt;
         }, keyHolder);
 
-        Integer id = keyHolder.getKey() != null ? keyHolder.getKey().intValue() : null;
-        if (id == null) {
-            throw new RuntimeException("Не удалось получить ID созданного пользователя");
-        }
-        user.setId(id);
+        user.setId(keyHolder.getKey().intValue());
+
+        saveFriends(user);
 
         return user;
     }
