@@ -50,9 +50,20 @@ public class FilmDbStorage implements FilmStorage {
         film.setGenres(genres);
 
         Integer mpaId = rs.getInt("mpa_id");
+        Film.Mpa mpa = new Film.Mpa();
         if (mpaId != null && mpaId > 0) {
-            Film.Mpa mpa = getMpaById(mpaId);
-            film.setMpa(mpa);
+            mpa.setId(mpaId);
+            try {
+                Film.Mpa fullMpa = getMpaById(mpaId);
+                if (fullMpa != null && fullMpa.getName() != null) {
+                    mpa.setName(fullMpa.getName());
+                }
+            } catch (Exception e) {
+                System.err.println("Could not load MPA name for id: " + mpaId);
+            }
+        } else {
+            mpa.setId(1);
+            mpa.setName("G");
         }
 
         return film;
