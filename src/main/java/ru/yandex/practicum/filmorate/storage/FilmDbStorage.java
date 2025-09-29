@@ -9,6 +9,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
+import ru.yandex.practicum.filmorate.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.sql.*;
@@ -47,6 +48,12 @@ public class FilmDbStorage implements FilmStorage {
 
         List<Film.Genre> genres = getGenresForFilm(film.getId());
         film.setGenres(genres);
+
+        Integer mpaId = rs.getInt("mpa_id");
+        if (mpaId != null && mpaId > 0) {
+            Film.Mpa mpa = getMpaById(mpaId);
+            film.setMpa(mpa);
+        }
 
         return film;
     };
@@ -101,6 +108,14 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Film create(Film film) {
+        // Проверяем MPA перед созданием
+        if (film.getMpa() != null && film.getMpa().getId() > 0) {
+            validateMpaExists(film.getMpa().getId());
+        }
+
+
+        validateGenresExist(film.getGenres());
+
         String sql = "INSERT INTO films (name, description, release_date, duration) VALUES (?, ?, ?, ?)";
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
@@ -200,5 +215,29 @@ public class FilmDbStorage implements FilmStorage {
         String deleteSql = "DELETE FROM likes WHERE film_id = ?";
         jdbcTemplate.update(deleteSql, film.getId());
         saveLikes(film);
+    }
+
+    private void validateMpaExists(int mpaId) {
+        String sql = "SELECT COUNT(*) FROM mpa_ratings WHERE id = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, mpaId);
+
+        if (count == null || count == 0) {
+            throw new NotFoundException("MPA рейтинг с id " + mpaId + " не найден");
+        }
+    }
+
+    private void validateGenresExist(List<Film.Genre> genres) {
+        if (genres == null || genres.isEmpty()) {
+            return;
+        }
+
+        for (Film.Genre genre : genres) {
+            String sql = "SELECT COUNT(*) FROM genres WHERE id = ?";
+            Integer count = jdbcTemplate.queryForObject(sql, Integer.class, genre.getId());
+
+            if (count == null || count == 0) {
+                throw new NotFoundException("Жанр с id " + genre.getId() + " не найден");
+            }
+        }
     }
 }
