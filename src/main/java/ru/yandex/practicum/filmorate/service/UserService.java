@@ -24,10 +24,12 @@ public class UserService {
     }
 
     public User create(User user) {
+        validateUser(user);
         return userStorage.create(user);
     }
 
     public User update(User user) {
+        validateUser(user);
         return userStorage.update(user);
     }
 
@@ -50,6 +52,16 @@ public class UserService {
 
     public List<User> getCommonFriends(int userId, int otherId) {
         return userStorage.getCommonFriends(userId, otherId);
+    }
+
+    private void validateUser(User user) {
+        if (user.getBirthday() != null && user.getBirthday().isAfter(LocalDate.now())) {
+            throw new ValidationException("Дата рождения не может быть в будущем");
+        }
+
+        if (user.getName() == null || user.getName().isBlank()) {
+            user.setName(user.getLogin());
+        }
     }
 
 }

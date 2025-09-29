@@ -5,8 +5,8 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Pattern;
-import jdk.jfr.Name;
 import lombok.Data;
+import org.springframework.boot.context.properties.bind.Name;
 
 import java.time.LocalDate;
 import java.util.HashSet;
@@ -26,10 +26,8 @@ public class User {
     @Pattern(regexp = "\\S+", message = "Логин не может содержать пробелы")
     private String login;
 
-    @NotBlank(message = "Имя не может быть пустым")
     private String name;
 
-    @PastOrPresent(message = "Дата рождения не может быть в будущем")
     private LocalDate birthday;
 
     private Set<Integer> friends = new HashSet<>();
