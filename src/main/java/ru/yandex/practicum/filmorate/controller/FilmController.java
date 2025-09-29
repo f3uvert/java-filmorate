@@ -59,6 +59,12 @@ public class FilmController {
 
     }
 
+    @GetMapping("/{id}")
+    public Film getFilmById(@PathVariable int id) {
+        log.info("Получен запрос на получение фильма с id: {}", id);
+        return filmService.getById(id);
+    }
+
     private void validateFilm(Film film) {
         if (film.getName() == null || film.getName().isBlank()) {
             log.warn("Название фильма не может быть пустым");
