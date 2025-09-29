@@ -107,6 +107,7 @@ public class FilmService {
             throw new NotFoundException("MPA рейтинг с id " + mpa.getId() + " не найден");
         }
     }
+
     private void validateGenres(List<Film.Genre> genres) {
         if (genres == null || genres.isEmpty()) {
             return;
