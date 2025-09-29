@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.storage;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Primary;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -17,6 +18,7 @@ import java.util.Optional;
 import java.util.Set;
 
 @Repository
+@Primary
 @Qualifier("filmDbStorage")
 public class FilmDbStorage implements FilmStorage {
 
@@ -40,19 +42,16 @@ public class FilmDbStorage implements FilmStorage {
 
         film.setDuration(rs.getInt("duration"));
 
+        Set<Integer> likes = getLikesIds(film.getId());
+        film.setLikes(likes);
+
         return film;
     };
 
     @Override
     public List<Film> getAll() {
         String sql = "SELECT * FROM films ORDER BY id";
-        List<Film> films = jdbcTemplate.query(sql, filmRowMapper);
-
-        for (Film film : films) {
-            film.setLikes(getLikesIds(film.getId()));
-        }
-
-        return films;
+        return jdbcTemplate.query(sql, filmRowMapper);
     }
 
     @Override
@@ -70,30 +69,30 @@ public class FilmDbStorage implements FilmStorage {
             return stmt;
         }, keyHolder);
 
-        Number key = keyHolder.getKey();
-        if (key != null) {
-            film.setId(key.intValue());
-        } else {
-            throw new RuntimeException("Не удалось получить ID созданного фильма");
-        }
+        film.setId(keyHolder.getKey().intValue());
+
+        saveLikes(film);
 
         return film;
     }
 
     @Override
     public Film update(Film film) {
-        // Проверяем существование фильма
-        getById(film.getId()).orElseThrow(() ->
-                new RuntimeException("Фильм с id " + film.getId() + " не найден"));
-
         String sql = "UPDATE films SET name = ?, description = ?, release_date = ?, duration = ? WHERE id = ?";
 
-        jdbcTemplate.update(sql,
+        int updated = jdbcTemplate.update(sql,
                 film.getName(),
                 film.getDescription(),
                 film.getReleaseDate() != null ? Date.valueOf(film.getReleaseDate()) : null,
                 film.getDuration(),
                 film.getId());
+
+        if (updated == 0) {
+            throw new RuntimeException("Фильм с id " + film.getId() + " не найден");
+        }
+
+        // Обновляем лайки
+        updateLikes(film);
 
         return film;
     }
@@ -103,9 +102,6 @@ public class FilmDbStorage implements FilmStorage {
         String sql = "SELECT * FROM films WHERE id = ?";
         try {
             Film film = jdbcTemplate.queryForObject(sql, filmRowMapper, id);
-            if (film != null) {
-                film.setLikes(getLikesIds(id));
-            }
             return Optional.ofNullable(film);
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
@@ -120,7 +116,7 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public void addLike(int filmId, int userId) {
-        String sql = "MERGE INTO likes (film_id, user_id) KEY(film_id, user_id) VALUES (?, ?)";
+        String sql = "INSERT INTO likes (film_id, user_id) VALUES (?, ?)";
         jdbcTemplate.update(sql, filmId, userId);
     }
 
@@ -138,20 +134,27 @@ public class FilmDbStorage implements FilmStorage {
                 "GROUP BY f.id " +
                 "ORDER BY likes_count DESC " +
                 "LIMIT ?";
-
-        List<Film> films = jdbcTemplate.query(sql, filmRowMapper, count);
-
-        for (Film film : films) {
-            film.setLikes(getLikesIds(film.getId()));
-        }
-
-        return films;
+        return jdbcTemplate.query(sql, filmRowMapper, count);
     }
 
     private Set<Integer> getLikesIds(Integer filmId) {
         String sql = "SELECT user_id FROM likes WHERE film_id = ?";
-        List<Integer> likes = jdbcTemplate.query(sql,
-                (rs, rowNum) -> rs.getInt("user_id"), filmId);
-        return new HashSet<>(likes);
+        return new HashSet<>(jdbcTemplate.query(sql,
+                (rs, rowNum) -> rs.getInt("user_id"), filmId));
+    }
+
+    private void saveLikes(Film film) {
+        if (film.getLikes() != null && !film.getLikes().isEmpty()) {
+            String sql = "INSERT INTO likes (film_id, user_id) VALUES (?, ?)";
+            for (Integer userId : film.getLikes()) {
+                jdbcTemplate.update(sql, film.getId(), userId);
+            }
+        }
+    }
+
+    private void updateLikes(Film film) {
+        String deleteSql = "DELETE FROM likes WHERE film_id = ?";
+        jdbcTemplate.update(deleteSql, film.getId());
+        saveLikes(film);
     }
 }
