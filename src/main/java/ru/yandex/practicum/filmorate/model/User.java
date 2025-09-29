@@ -25,6 +25,7 @@ public class User {
     private String login;
 
     private String name;
+
     @PastOrPresent(message = "Дата рождения не может быть в будущем")
     private LocalDate birthday;
 

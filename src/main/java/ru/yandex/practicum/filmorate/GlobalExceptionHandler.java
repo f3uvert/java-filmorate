@@ -69,7 +69,7 @@ public class GlobalExceptionHandler {
         );
     }
 
-    // Дополнительный обработчик для отладки - можно удалить после тестирования
+
     @ExceptionHandler(Throwable.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Map<String, String> handleThrowable(Throwable e) {
