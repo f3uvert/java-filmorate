@@ -164,6 +164,10 @@ public class FilmDbStorage implements FilmStorage {
             return Optional.ofNullable(film);
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
+        } catch (Exception e) {
+            System.err.println("Error getting film by id " + id + ": " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
     }
 
