@@ -29,12 +29,10 @@ public class FilmService {
     }
 
     public Film create(Film film) {
-      //  validateFilm(film);
         return filmStorage.create(film);
     }
 
     public Film update(Film film) {
-       // validateFilm(film);
         return filmStorage.update(film);
     }
 
@@ -66,29 +64,4 @@ public class FilmService {
     public List<Film> getPopular(int count) {
         return filmStorage.getPopular(count);
     }
-/*
-
-    private void validateFilm(Film film) {
-        if (film.getName() == null || film.getName().isBlank()) {
-            throw new ValidationException("Название фильма не может быть пустым");
-        }
-
-        if (film.getDescription() != null && film.getDescription().length() > 200) {
-            throw new ValidationException("Описание фильма не может превышать 200 символов");
-        }
-
-        if (film.getReleaseDate() == null || film.getReleaseDate().isBefore(MIN_RELEASE_DATE)) {
-            throw new ValidationException("Дата релиза должна быть не раньше " + MIN_RELEASE_DATE);
-        }
-
-        if (film.getDuration() <= 0) {
-            throw new ValidationException("Продолжительность фильма должна быть положительным числом");
-        }
-    }
-
- */
-
-
-
-
 }
