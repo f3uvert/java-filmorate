@@ -34,6 +34,8 @@ public class FilmService {
 
     public Film create(Film film) {
         validateFilm(film);
+        validateMpa(film.getMpa()); // Должен выбрасывать NotFoundException
+        validateGenres(film.getGenres()); // Должен выбрасывать NotFoundException
         // Гарантируем наличие MPA
         if (film.getMpa() == null) {
             Film.Mpa defaultMpa = new Film.Mpa();
@@ -45,6 +47,8 @@ public class FilmService {
 
     public Film update(Film film) {
         validateFilm(film);
+        validateMpa(film.getMpa()); // Должен выбрасывать NotFoundException
+        validateGenres(film.getGenres()); // Должен выбрасывать NotFoundException
         // Гарантируем наличие MPA
         if (film.getMpa() == null) {
             Film.Mpa defaultMpa = new Film.Mpa();
