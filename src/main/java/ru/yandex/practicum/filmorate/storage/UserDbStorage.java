@@ -57,10 +57,7 @@ public class UserDbStorage implements UserStorage {
     }
 
     @Override
-    public User create(@Valid User user) {
-        if (user.getLogin().contains(" ")) {
-            throw new ValidationException("Логин не может содержать пробелы");
-        }
+    public User create(User user) {
         String sql = "INSERT INTO users (email, login, name, birthday) VALUES (?, ?, ?, ?)";
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
@@ -70,25 +67,21 @@ public class UserDbStorage implements UserStorage {
             stmt.setString(1, user.getEmail());
             stmt.setString(2, user.getLogin());
             stmt.setString(3, user.getName());
-
-            if (user.getBirthday() != null) {
-                stmt.setDate(4, Date.valueOf(user.getBirthday()));
-            } else {
-                stmt.setNull(4, Types.DATE);
-            }
-
+            stmt.setDate(4, user.getBirthday() != null ? Date.valueOf(user.getBirthday()) : null);
             return stmt;
         }, keyHolder);
 
-        user.setId(keyHolder.getKey().intValue());
-
-        saveFriends(user);
+        Integer id = keyHolder.getKey() != null ? keyHolder.getKey().intValue() : null;
+        if (id == null) {
+            throw new RuntimeException("Не удалось получить ID созданного пользователя");
+        }
+        user.setId(id);
 
         return user;
     }
 
     @Override
-    public User update(@Valid User user) {
+    public User update(User user) {
         String sql = "UPDATE users SET email = ?, login = ?, name = ?, birthday = ? WHERE id = ?";
 
         int updated = jdbcTemplate.update(sql,
