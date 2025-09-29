@@ -35,12 +35,14 @@ public class FilmService {
     public Film create(Film film) {
         validateFilm(film);
         validateMpa(film.getMpa());
+        validateGenres(film.getGenres());
         return filmStorage.create(film);
     }
 
     public Film update(Film film) {
         validateFilm(film);
         validateMpa(film.getMpa());
+        validateGenres(film.getGenres());
         return filmStorage.update(film);
     }
 
@@ -103,6 +105,20 @@ public class FilmService {
 
         if (count == null || count == 0) {
             throw new NotFoundException("MPA рейтинг с id " + mpa.getId() + " не найден");
+        }
+    }
+    private void validateGenres(List<Film.Genre> genres) {
+        if (genres == null || genres.isEmpty()) {
+            return;
+        }
+
+        for (Film.Genre genre : genres) {
+            String sql = "SELECT COUNT(*) FROM genres WHERE id = ?";
+            Integer count = jdbcTemplate.queryForObject(sql, Integer.class, genre.getId());
+
+            if (count == null || count == 0) {
+                throw new NotFoundException("Жанр с id " + genre.getId() + " не найден");
+            }
         }
     }
 }
