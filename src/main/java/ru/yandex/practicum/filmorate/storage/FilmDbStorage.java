@@ -108,7 +108,6 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Film create(Film film) {
-        // Проверяем MPA перед созданием
         if (film.getMpa() != null && film.getMpa().getId() > 0) {
             validateMpaExists(film.getMpa().getId());
         }
@@ -131,6 +130,8 @@ public class FilmDbStorage implements FilmStorage {
 
         film.setId(keyHolder.getKey().intValue());
 
+        saveGenres(film);
+
         saveLikes(film);
 
         return film;
@@ -138,18 +139,21 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Film update(Film film) {
-        String sql = "UPDATE films SET name = ?, description = ?, release_date = ?, duration = ? WHERE id = ?";
+        String sql = "UPDATE films SET name = ?, description = ?, release_date = ?, duration = ?, mpa_id = ? WHERE id = ?";
 
         int updated = jdbcTemplate.update(sql,
                 film.getName(),
                 film.getDescription(),
                 film.getReleaseDate() != null ? Date.valueOf(film.getReleaseDate()) : null,
                 film.getDuration(),
+                film.getMpa() != null ? film.getMpa().getId() : null,
                 film.getId());
 
         if (updated == 0) {
             throw new RuntimeException("Фильм с id " + film.getId() + " не найден");
         }
+
+        updateGenres(film);
 
         updateLikes(film);
 
