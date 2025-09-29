@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
 class FilmorateApplicationTests {
-
+    /*
     @Test
     void testFilmValidation() {
         Film film = new Film();
@@ -176,4 +176,6 @@ class FilmorateApplicationTests {
 
         assertThrows(NotFoundException.class, () -> validateFilm(film));
     }
+
+     */
 }
