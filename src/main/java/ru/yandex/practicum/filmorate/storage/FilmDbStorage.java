@@ -51,7 +51,6 @@ public class FilmDbStorage implements FilmStorage {
         return film;
     };
 
-    // Методы для работы с MPA
     private Film.Mpa getMpaById(int mpaId) {
         String sql = "SELECT * FROM mpa_ratings WHERE id = ?";
         try {
@@ -66,7 +65,6 @@ public class FilmDbStorage implements FilmStorage {
         }
     }
 
-    // Методы для работы с жанрами
     private List<Film.Genre> getGenresForFilm(int filmId) {
         String sql = "SELECT g.* FROM genres g " +
                 "JOIN film_genres fg ON g.id = fg.genre_id " +
@@ -89,11 +87,9 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     private void updateGenres(Film film) {
-        // Удаляем старые жанры
         String deleteSql = "DELETE FROM film_genres WHERE film_id = ?";
         jdbcTemplate.update(deleteSql, film.getId());
 
-        // Добавляем новые
         saveGenres(film);
     }
 
@@ -140,7 +136,6 @@ public class FilmDbStorage implements FilmStorage {
             throw new RuntimeException("Фильм с id " + film.getId() + " не найден");
         }
 
-        // Обновляем лайки
         updateLikes(film);
 
         return film;

@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.NotFoundException;
 import ru.yandex.practicum.filmorate.ValidationException;
@@ -17,11 +18,13 @@ public class FilmService {
 
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
+    private final JdbcTemplate jdbcTemplate;
 
     @Autowired
-    public FilmService(FilmStorage filmStorage, UserStorage userStorage) {
+    public FilmService(FilmStorage filmStorage, UserStorage userStorage, JdbcTemplate jdbcTemplate) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
 
@@ -31,11 +34,13 @@ public class FilmService {
 
     public Film create(Film film) {
         validateFilm(film);
+        validateMpa(film.getMpa());
         return filmStorage.create(film);
     }
 
     public Film update(Film film) {
         validateFilm(film);
+        validateMpa(film.getMpa());
         return filmStorage.update(film);
     }
 
@@ -69,25 +74,35 @@ public class FilmService {
     }
 
     private void validateFilm(Film film) {
-        // Проверка названия
+
         if (film.getName() == null || film.getName().isBlank()) {
             throw new ValidationException("Название фильма не может быть пустым");
         }
 
-        // Проверка описания
         if (film.getDescription() != null && film.getDescription().length() > 200) {
             throw new ValidationException("Максимальная длина описания — 200 символов");
         }
 
-        // Проверка даты релиза
         LocalDate minReleaseDate = LocalDate.of(1895, 12, 28);
         if (film.getReleaseDate() == null || film.getReleaseDate().isBefore(minReleaseDate)) {
             throw new ValidationException("Дата релиза — не раньше 28 декабря 1895 года");
         }
 
-        // Проверка продолжительности
         if (film.getDuration() <= 0) {
             throw new ValidationException("Продолжительность фильма должна быть положительным числом");
+        }
+    }
+
+    private void validateMpa(Film.Mpa mpa) {
+        if (mpa == null || mpa.getId() == 0) {
+            return;
+        }
+
+        String sql = "SELECT COUNT(*) FROM mpa_ratings WHERE id = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, mpa.getId());
+
+        if (count == null || count == 0) {
+            throw new NotFoundException("MPA рейтинг с id " + mpa.getId() + " не найден");
         }
     }
 }
