@@ -1,4 +1,4 @@
-/*package ru.yandex.practicum.filmorate;
+package ru.yandex.practicum.filmorate;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
 class FilmorateApplicationTests {
-
+    /*
     @Test
     void testFilmValidation() {
         Film film = new Film();
@@ -100,6 +100,8 @@ class FilmorateApplicationTests {
             throw new ValidationException("Дата рождения не может быть в будущем");
         }
     }
+
+     */
 }
 
- */
+
