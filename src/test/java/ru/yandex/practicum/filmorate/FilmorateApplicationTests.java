@@ -1,19 +1,19 @@
 package ru.yandex.practicum.filmorate;
 
-//import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-//import ru.yandex.practicum.filmorate.model.Film;
-//import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.User;
 
 
-//import java.time.LocalDate;
-//import java.util.ArrayList;
+import java.time.LocalDate;
+import java.util.ArrayList;
 
-//import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
 class FilmorateApplicationTests {
-    /*
+
     @Test
     void testFilmValidation() {
         Film film = new Film();
@@ -177,5 +177,5 @@ class FilmorateApplicationTests {
         assertThrows(NotFoundException.class, () -> validateFilm(film));
     }
 
-     */
+
 }
