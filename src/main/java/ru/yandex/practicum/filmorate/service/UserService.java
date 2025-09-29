@@ -44,6 +44,9 @@ public class UserService {
     }
 
     public void removeFriend(int userId, int friendId) {
+        User user = getById(userId);
+        User friend = getById(friendId);
+
         userStorage.removeFriend(userId, friendId);
     }
 
