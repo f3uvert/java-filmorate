@@ -30,12 +30,12 @@ public class FilmService {
     }
 
     public Film create(Film film) {
-        validateFilm(film);
+     //   validateFilm(film);
         return filmStorage.create(film);
     }
 
     public Film update(Film film) {
-        validateFilm(film);
+    //    validateFilm(film);
         return filmStorage.update(film);
     }
 
@@ -67,7 +67,7 @@ public class FilmService {
     public List<Film> getPopular(int count) {
         return filmStorage.getPopular(count);
     }
-
+/*
     private void validateFilm(Film film) {
         if (film.getName() == null || film.getName().isBlank()) {
             throw new ValidationException("Название фильма не может быть пустым");
@@ -85,4 +85,8 @@ public class FilmService {
             throw new ValidationException("Продолжительность фильма должна быть положительным числом");
         }
     }
+
+ */
+
+
 }
