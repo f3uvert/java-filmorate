@@ -54,7 +54,6 @@ public class FilmDbStorage implements FilmStorage {
             int mpaId = rs.getInt("mpa_id");
             if (!rs.wasNull() && mpaId > 0) {
                 mpa.setId(mpaId);
-                // Загружаем название MPA
                 try {
                     String mpaName = jdbcTemplate.queryForObject(
                             "SELECT name FROM mpa_ratings WHERE id = ?",
@@ -65,12 +64,10 @@ public class FilmDbStorage implements FilmStorage {
                     mpa.setName("Unknown");
                 }
             } else {
-                // Если mpa_id NULL или 0 - дефолтный MPA
                 mpa.setId(1);
                 mpa.setName("G");
             }
         } catch (Exception e) {
-            // При любой ошибке - дефолтный MPA
             mpa.setId(1);
             mpa.setName("G");
         }
@@ -138,11 +135,10 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Film create(Film film) {
-        // Гарантируем, что у фильма есть MPA
         if (film.getMpa() == null) {
             Film.Mpa defaultMpa = new Film.Mpa();
             defaultMpa.setId(1);
-            defaultMpa.setName("G");// G рейтинг по умолчанию
+            defaultMpa.setName("G");
             film.setMpa(defaultMpa);
         }
 
@@ -169,10 +165,9 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Film update(Film film) {
-        // Гарантируем, что у фильма есть MPA
         if (film.getMpa() == null) {
             Film.Mpa defaultMpa = new Film.Mpa();
-            defaultMpa.setId(1); // G рейтинг по умолчанию
+            defaultMpa.setId(1);
             film.setMpa(defaultMpa);
         }
 
@@ -183,7 +178,7 @@ public class FilmDbStorage implements FilmStorage {
                 film.getDescription(),
                 film.getReleaseDate() != null ? Date.valueOf(film.getReleaseDate()) : null,
                 film.getDuration(),
-                film.getMpa().getId(), // Всегда обновляем mpa_id
+                film.getMpa().getId(),
                 film.getId());
 
         if (updated == 0) {
