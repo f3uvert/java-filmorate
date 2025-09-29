@@ -29,6 +29,7 @@ public class UserService {
     }
 
     public User update(User user) {
+        getById(user.getId());
         validateUser(user);
         return userStorage.update(user);
     }
