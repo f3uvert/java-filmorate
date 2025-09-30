@@ -109,6 +109,7 @@ public class FilmService {
             }
         }
     }
+
     private void validateFilm(Film film) {
         if (film.getName() == null || film.getName().isBlank()) {
             throw new ValidationException("Название фильма не может быть пустым");
