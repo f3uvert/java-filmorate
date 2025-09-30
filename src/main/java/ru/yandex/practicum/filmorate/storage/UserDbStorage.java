@@ -1,6 +1,5 @@
 package ru.yandex.practicum.filmorate.storage;
 
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Primary;
@@ -26,10 +25,12 @@ import java.util.Set;
 public class UserDbStorage implements UserStorage {
 
     private final JdbcTemplate jdbcTemplate;
+    private final FriendStorage friendStorage;
 
     @Autowired
-    public UserDbStorage(JdbcTemplate jdbcTemplate) {
+    public UserDbStorage(JdbcTemplate jdbcTemplate, FriendStorage friendStorage) {
         this.jdbcTemplate = jdbcTemplate;
+        this.friendStorage = friendStorage;
     }
 
     private final RowMapper<User> userRowMapper = (rs, rowNum) -> {
@@ -62,6 +63,7 @@ public class UserDbStorage implements UserStorage {
         if (user.getLogin().contains(" ")) {
             throw new ValidationException("Логин не может содержать пробелы");
         }
+
         String sql = "INSERT INTO users (email, login, name, birthday) VALUES (?, ?, ?, ?)";
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
@@ -83,7 +85,9 @@ public class UserDbStorage implements UserStorage {
 
         user.setId(keyHolder.getKey().intValue());
 
-        saveFriends(user);
+        if (user.getFriends() != null && !user.getFriends().isEmpty()) {
+            friendStorage.saveAllFriends(user.getId(), List.copyOf(user.getFriends()));
+        }
 
         return user;
     }
@@ -100,9 +104,13 @@ public class UserDbStorage implements UserStorage {
                 user.getId());
 
         if (updated == 0) {
-            throw new RuntimeException("Пользователь с id " + user.getId() + " не найден");
+            throw new NotFoundException("Пользователь с id " + user.getId() + " не найден");
         }
-        updateFriends(user);
+
+        if (user.getFriends() != null) {
+            friendStorage.updateFriends(user.getId(), List.copyOf(user.getFriends()));
+        }
+
         return user;
     }
 
@@ -125,57 +133,27 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public void addFriend(int userId, int friendId) {
-        getById(userId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с id " + userId + " не найден"));
-
-        getById(friendId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с id " + friendId + " не найден"));
-
-        String sql = "INSERT INTO friends (user_id, friend_id, confirmed) VALUES (?, ?, false)";
-        jdbcTemplate.update(sql, userId, friendId);
+        friendStorage.addFriend(userId, friendId);
     }
 
     @Override
     public void removeFriend(int userId, int friendId) {
-        String sql = "DELETE FROM friends WHERE user_id = ? AND friend_id = ?";
-        jdbcTemplate.update(sql, userId, friendId);
+        friendStorage.removeFriend(userId, friendId);
     }
 
     @Override
     public List<User> getFriends(int userId) {
-        String sql = "SELECT u.* FROM users u " +
-                "JOIN friends f ON u.id = f.friend_id " +
-                "WHERE f.user_id = ?";
-        return jdbcTemplate.query(sql, userRowMapper, userId);
+        return friendStorage.getFriends(userId);
     }
 
     @Override
     public List<User> getCommonFriends(int userId, int otherId) {
-        String sql = "SELECT u.* FROM users u " +
-                "JOIN friends f1 ON u.id = f1.friend_id " +
-                "JOIN friends f2 ON u.id = f2.friend_id " +
-                "WHERE f1.user_id = ? AND f2.user_id = ?";
-        return jdbcTemplate.query(sql, userRowMapper, userId, otherId);
+        return friendStorage.getCommonFriends(userId, otherId);
     }
 
     private Set<Integer> getFriendsIds(Integer userId) {
         String sql = "SELECT friend_id FROM friends WHERE user_id = ?";
         return new HashSet<>(jdbcTemplate.query(sql,
                 (rs, rowNum) -> rs.getInt("friend_id"), userId));
-    }
-
-    private void saveFriends(User user) {
-        if (user.getFriends() != null && !user.getFriends().isEmpty()) {
-            String sql = "INSERT INTO friends (user_id, friend_id, confirmed) VALUES (?, ?, false)";
-            for (Integer friendId : user.getFriends()) {
-                jdbcTemplate.update(sql, user.getId(), friendId);
-            }
-        }
-    }
-
-    private void updateFriends(User user) {
-        String deleteSql = "DELETE FROM friends WHERE user_id = ?";
-        jdbcTemplate.update(deleteSql, user.getId());
-        saveFriends(user);
     }
 }
