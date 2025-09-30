@@ -135,10 +135,15 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Film create(Film film) {
+        validateMpaExists(film.getMpa().getId());
+
+        if (film.getGenres() != null && !film.getGenres().isEmpty()) {
+            validateGenresExist(film.getGenres());
+        }
+
         if (film.getMpa() == null) {
             Film.Mpa defaultMpa = new Film.Mpa();
             defaultMpa.setId(1);
-            defaultMpa.setName("G");
             film.setMpa(defaultMpa);
         }
 
@@ -152,7 +157,7 @@ public class FilmDbStorage implements FilmStorage {
             stmt.setString(2, film.getDescription());
             stmt.setDate(3, film.getReleaseDate() != null ? Date.valueOf(film.getReleaseDate()) : null);
             stmt.setInt(4, film.getDuration());
-            stmt.setInt(5, film.getMpa().getId()); // Всегда устанавливаем mpa_id
+            stmt.setInt(5, film.getMpa().getId());
             return stmt;
         }, keyHolder);
 
@@ -165,6 +170,15 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Film update(Film film) {
+        getById(film.getId())
+                .orElseThrow(() -> new NotFoundException("Фильм с id " + film.getId() + " не найден"));
+
+        validateMpaExists(film.getMpa().getId());
+
+        if (film.getGenres() != null && !film.getGenres().isEmpty()) {
+            validateGenresExist(film.getGenres());
+        }
+
         if (film.getMpa() == null) {
             Film.Mpa defaultMpa = new Film.Mpa();
             defaultMpa.setId(1);
@@ -182,7 +196,7 @@ public class FilmDbStorage implements FilmStorage {
                 film.getId());
 
         if (updated == 0) {
-            throw new RuntimeException("Фильм с id " + film.getId() + " не найден");
+            throw new NotFoundException("Фильм с id " + film.getId() + " не найден");
         }
 
         updateGenres(film);
@@ -266,17 +280,17 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     private void validateGenresExist(List<Film.Genre> genres) {
-        if (genres == null || genres.isEmpty()) {
-            return;
-        }
+        Set<Integer> genreIds = genres.stream()
+                .map(Film.Genre::getId)
+                .collect(Collectors.toSet());
 
-        for (Film.Genre genre : genres) {
-            String sql = "SELECT COUNT(*) FROM genres WHERE id = ?";
-            Integer count = jdbcTemplate.queryForObject(sql, Integer.class, genre.getId());
+        String sql = "SELECT COUNT(*) FROM genres WHERE id IN (" +
+                genreIds.stream().map(String::valueOf).collect(Collectors.joining(",")) +
+                ")";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class);
 
-            if (count == null || count == 0) {
-                throw new NotFoundException("Жанр с id " + genre.getId() + " не найден");
-            }
+        if (count == null || count != genreIds.size()) {
+            throw new NotFoundException("Один или несколько жанров не найдены");
         }
     }
 }

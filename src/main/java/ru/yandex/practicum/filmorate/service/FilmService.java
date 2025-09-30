@@ -1,31 +1,30 @@
 package ru.yandex.practicum.filmorate.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
-import java.time.LocalDate;
 import java.util.List;
 
 @Service
 public class FilmService {
-    private static final LocalDate MIN_RELEASE_DATE = LocalDate.of(1895, 12, 28);
 
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
-    private final JdbcTemplate jdbcTemplate;
+    private final MpaService mpaService;
+    private final GenreService genreService;
 
     @Autowired
-    public FilmService(FilmStorage filmStorage, UserStorage userStorage, JdbcTemplate jdbcTemplate) {
+    public FilmService(FilmStorage filmStorage, UserStorage userStorage,
+                       MpaService mpaService, GenreService genreService) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
-        this.jdbcTemplate = jdbcTemplate;
+        this.mpaService = mpaService;
+        this.genreService = genreService;
     }
-
 
     public List<Film> getAll() {
         return filmStorage.getAll();
@@ -87,10 +86,9 @@ public class FilmService {
             return;
         }
 
-        String sql = "SELECT COUNT(*) FROM mpa_ratings WHERE id = ?";
-        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, mpa.getId());
-
-        if (count == null || count == 0) {
+        try {
+            mpaService.getMpaById(mpa.getId());
+        } catch (NotFoundException e) {
             throw new NotFoundException("MPA рейтинг с id " + mpa.getId() + " не найден");
         }
     }
@@ -101,10 +99,9 @@ public class FilmService {
         }
 
         for (Film.Genre genre : genres) {
-            String sql = "SELECT COUNT(*) FROM genres WHERE id = ?";
-            Integer count = jdbcTemplate.queryForObject(sql, Integer.class, genre.getId());
-
-            if (count == null || count == 0) {
+            try {
+                genreService.getGenreById(genre.getId());
+            } catch (NotFoundException e) {
                 throw new NotFoundException("Жанр с id " + genre.getId() + " не найден");
             }
         }
