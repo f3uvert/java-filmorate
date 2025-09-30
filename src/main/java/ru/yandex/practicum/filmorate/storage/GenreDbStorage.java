@@ -6,8 +6,11 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.model.Film;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Repository
 public class GenreDbStorage implements GenreStorage {
@@ -55,18 +58,29 @@ public class GenreDbStorage implements GenreStorage {
             return;
         }
 
+        Set<Film.Genre> uniqueGenres = genres.stream()
+                .collect(Collectors.toMap(
+                        Film.Genre::getId,
+                        genre -> genre,
+                        (existing, replacement) -> existing
+                ))
+                .values()
+                .stream()
+                .collect(Collectors.toSet());
+
         String sql = "INSERT INTO film_genres (film_id, genre_id) VALUES (?, ?)";
 
         jdbcTemplate.batchUpdate(sql, new org.springframework.jdbc.core.BatchPreparedStatementSetter() {
             @Override
             public void setValues(java.sql.PreparedStatement ps, int i) throws java.sql.SQLException {
+                Film.Genre genre = new ArrayList<>(uniqueGenres).get(i);
                 ps.setInt(1, filmId);
-                ps.setInt(2, genres.get(i).getId());
+                ps.setInt(2, genre.getId());
             }
 
             @Override
             public int getBatchSize() {
-                return genres.size();
+                return uniqueGenres.size();
             }
         });
     }
