@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.NotFoundException;
+import ru.yandex.practicum.filmorate.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
@@ -31,6 +32,7 @@ public class FilmService {
     }
 
     public Film create(Film film) {
+        validateFilm(film);
         validateMpa(film.getMpa());
         validateGenres(film.getGenres());
         if (film.getMpa() == null) {
@@ -42,6 +44,7 @@ public class FilmService {
     }
 
     public Film update(Film film) {
+        validateFilm(film);
         validateMpa(film.getMpa());
         validateGenres(film.getGenres());
         if (film.getMpa() == null) {
@@ -104,6 +107,11 @@ public class FilmService {
             } catch (NotFoundException e) {
                 throw new NotFoundException("Жанр с id " + genre.getId() + " не найден");
             }
+        }
+    }
+    private void validateFilm(Film film) {
+        if (film.getName() == null || film.getName().isBlank()) {
+            throw new ValidationException("Название фильма не может быть пустым");
         }
     }
 }
