@@ -2,6 +2,8 @@ package ru.yandex.practicum.filmorate.model;
 
 import jakarta.validation.constraints.*;
 import lombok.Data;
+import ru.yandex.practicum.filmorate.MinReleaseDate;
+
 import java.time.LocalDate;
 
 import java.util.ArrayList;
@@ -27,6 +29,7 @@ public class Film {
     private LocalDate releaseDate;
 
     @Positive(message = "Продолжительность фильма должна быть положительным числом")
+    @MinReleaseDate(message = "Дата релиза — не раньше 28 декабря 1895 года")
     private int duration;
 
     private Mpa mpa;
