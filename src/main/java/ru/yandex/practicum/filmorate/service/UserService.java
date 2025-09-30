@@ -67,6 +67,7 @@ public class UserService {
         getById(otherId);
         return userStorage.getCommonFriends(userId, otherId);
     }
+
     private void validateUser(User user) {
         if (user.getBirthday() != null && user.getBirthday().isAfter(LocalDate.now())) {
             throw new ValidationException("Дата рождения не может быть в будущем");
