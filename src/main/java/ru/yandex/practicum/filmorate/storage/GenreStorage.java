@@ -57,11 +57,9 @@ public class GenreStorage {
     }
 
     public void updateGenresForFilm(int filmId, List<Film.Genre> genres) {
-        // Сначала удаляем все жанры для фильма
         String deleteSql = "DELETE FROM film_genres WHERE film_id = ?";
         jdbcTemplate.update(deleteSql, filmId);
 
-        // Затем добавляем новые жанры батчем
         saveGenresForFilm(filmId, genres);
     }
 }

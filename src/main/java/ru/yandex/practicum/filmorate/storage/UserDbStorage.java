@@ -14,10 +14,8 @@ import ru.yandex.practicum.filmorate.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.sql.*;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 @Repository
 @Primary
@@ -45,17 +43,13 @@ public class UserDbStorage implements UserStorage {
             user.setBirthday(birthday.toLocalDate());
         }
 
-        Set<Integer> friends = getFriendsIds(user.getId());
-        user.setFriends(friends);
-
         return user;
     };
 
     @Override
     public List<User> getAll() {
         String sql = "SELECT * FROM users ORDER BY id";
-        List<User> users = jdbcTemplate.query(sql, userRowMapper);
-        return users;
+        return jdbcTemplate.query(sql, userRowMapper);
     }
 
     @Override
@@ -85,10 +79,6 @@ public class UserDbStorage implements UserStorage {
 
         user.setId(keyHolder.getKey().intValue());
 
-        if (user.getFriends() != null && !user.getFriends().isEmpty()) {
-            friendStorage.saveAllFriends(user.getId(), List.copyOf(user.getFriends()));
-        }
-
         return user;
     }
 
@@ -105,10 +95,6 @@ public class UserDbStorage implements UserStorage {
 
         if (updated == 0) {
             throw new NotFoundException("Пользователь с id " + user.getId() + " не найден");
-        }
-
-        if (user.getFriends() != null) {
-            friendStorage.updateFriends(user.getId(), List.copyOf(user.getFriends()));
         }
 
         return user;
@@ -149,11 +135,5 @@ public class UserDbStorage implements UserStorage {
     @Override
     public List<User> getCommonFriends(int userId, int otherId) {
         return friendStorage.getCommonFriends(userId, otherId);
-    }
-
-    private Set<Integer> getFriendsIds(Integer userId) {
-        String sql = "SELECT friend_id FROM friends WHERE user_id = ?";
-        return new HashSet<>(jdbcTemplate.query(sql,
-                (rs, rowNum) -> rs.getInt("friend_id"), userId));
     }
 }

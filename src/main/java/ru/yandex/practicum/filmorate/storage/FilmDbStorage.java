@@ -1,6 +1,6 @@
 package ru.yandex.practicum.filmorate.storage;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Primary;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -20,18 +20,12 @@ import java.util.stream.Collectors;
 @Repository
 @Primary
 @Qualifier("filmDbStorage")
+@RequiredArgsConstructor
 public class FilmDbStorage implements FilmStorage {
 
-    private JdbcTemplate jdbcTemplate;
-    private LikeStorage likeStorage;
-    private GenreStorage genreStorage;
-
-    @Autowired
-    public FilmDbStorage(JdbcTemplate jdbcTemplate, LikeStorage likeStorage, GenreStorage genreStorage) {
-        this.jdbcTemplate = jdbcTemplate;
-        this.likeStorage = likeStorage;
-        this.genreStorage = genreStorage;
-    }
+    private final JdbcTemplate jdbcTemplate;
+    private final LikeStorage likeStorage;
+    private final GenreStorage genreStorage;
 
     private final RowMapper<Film> filmRowMapper = (rs, rowNum) -> {
         Film film = new Film();
@@ -53,24 +47,19 @@ public class FilmDbStorage implements FilmStorage {
         film.setGenres(genres);
 
         Film.Mpa mpa = new Film.Mpa();
-        try {
-            int mpaId = rs.getInt("mpa_id");
-            if (!rs.wasNull() && mpaId > 0) {
-                mpa.setId(mpaId);
-                try {
-                    String mpaName = jdbcTemplate.queryForObject(
-                            "SELECT name FROM mpa_ratings WHERE id = ?",
-                            String.class, mpaId
-                    );
-                    mpa.setName(mpaName != null ? mpaName : "Unknown");
-                } catch (EmptyResultDataAccessException e) {
-                    mpa.setName("Unknown");
-                }
-            } else {
-                mpa.setId(1);
-                mpa.setName("G");
+        int mpaId = rs.getInt("mpa_id");
+        if (!rs.wasNull() && mpaId > 0) {
+            mpa.setId(mpaId);
+            try {
+                String mpaName = jdbcTemplate.queryForObject(
+                        "SELECT name FROM mpa_ratings WHERE id = ?",
+                        String.class, mpaId
+                );
+                mpa.setName(mpaName != null ? mpaName : "Unknown");
+            } catch (EmptyResultDataAccessException e) {
+                mpa.setName("Unknown");
             }
-        } catch (Exception e) {
+        } else {
             mpa.setId(1);
             mpa.setName("G");
         }
@@ -120,7 +109,7 @@ public class FilmDbStorage implements FilmStorage {
         }
 
         if (film.getLikes() != null && !film.getLikes().isEmpty()) {
-            likeStorage.saveAllLikes(film.getId(), List.copyOf(film.getLikes()));
+            likeStorage.saveAllLikes(film.getId(), new ArrayList<>(film.getLikes()));
         }
 
         return film;
@@ -157,11 +146,11 @@ public class FilmDbStorage implements FilmStorage {
             throw new NotFoundException("Фильм с id " + film.getId() + " не найден");
         }
 
-        genreStorage.updateGenresForFilm(film.getId(),
-                film.getGenres() != null ? film.getGenres() : List.of());
+        List<Film.Genre> genresToUpdate = film.getGenres() != null ? film.getGenres() : Collections.emptyList();
+        genreStorage.updateGenresForFilm(film.getId(), genresToUpdate);
 
-        likeStorage.updateLikes(film.getId(),
-                film.getLikes() != null ? List.copyOf(film.getLikes()) : List.of());
+        List<Integer> likesToUpdate = film.getLikes() != null ? new ArrayList<>(film.getLikes()) : Collections.emptyList();
+        likeStorage.updateLikes(film.getId(), likesToUpdate);
 
         return film;
     }
@@ -176,8 +165,7 @@ public class FilmDbStorage implements FilmStorage {
             return Optional.empty();
         } catch (Exception e) {
             System.err.println("Error getting film by id " + id + ": " + e.getMessage());
-            e.printStackTrace();
-            throw e;
+            throw new RuntimeException("Error getting film by id " + id, e);
         }
     }
 
@@ -223,14 +211,18 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     private void validateGenresExist(List<Film.Genre> genres) {
+        if (genres == null || genres.isEmpty()) {
+            return;
+        }
+
         Set<Integer> genreIds = genres.stream()
                 .map(Film.Genre::getId)
                 .collect(Collectors.toSet());
 
-        String sql = "SELECT COUNT(*) FROM genres WHERE id IN (" +
-                genreIds.stream().map(String::valueOf).collect(Collectors.joining(",")) +
-                ")";
-        Integer count = jdbcTemplate.queryForObject(sql, Integer.class);
+        String placeholders = String.join(",", Collections.nCopies(genreIds.size(), "?"));
+        String sql = "SELECT COUNT(*) FROM genres WHERE id IN (" + placeholders + ")";
+
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, genreIds.toArray());
 
         if (count == null || count != genreIds.size()) {
             throw new NotFoundException("Один или несколько жанров не найдены");
