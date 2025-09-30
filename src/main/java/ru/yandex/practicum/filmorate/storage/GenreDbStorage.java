@@ -44,7 +44,7 @@ public class GenreDbStorage implements GenreStorage {
     }
 
     public List<Film.Genre> getGenresForFilm(int filmId) {
-        String sql = "SELECT g.* FROM genres g " +
+        String sql = "SELECT DISTINCT g.* FROM genres g " +  // Добавь DISTINCT
                 "JOIN film_genres fg ON g.id = fg.genre_id " +
                 "WHERE fg.film_id = ? ORDER BY g.id";
         return jdbcTemplate.query(sql, genreRowMapper, filmId);
