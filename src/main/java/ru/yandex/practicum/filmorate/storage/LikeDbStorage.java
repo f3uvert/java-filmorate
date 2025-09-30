@@ -21,9 +21,13 @@ public class LikeDbStorage implements LikeStorage {
 
     @Override
     public void addLike(int filmId, int userId) {
-        String sql = "INSERT INTO likes (film_id, user_id) VALUES (?, ?) " +
-                "ON CONFLICT (film_id, user_id) DO NOTHING";
-        jdbcTemplate.update(sql, filmId, userId);
+        String checkSql = "SELECT COUNT(*) FROM likes WHERE film_id = ? AND user_id = ?";
+        Integer count = jdbcTemplate.queryForObject(checkSql, Integer.class, filmId, userId);
+
+        if (count == null || count == 0) {
+            String sql = "INSERT INTO likes (film_id, user_id) VALUES (?, ?)";
+            jdbcTemplate.update(sql, filmId, userId);
+        }
     }
 
     @Override
@@ -45,8 +49,7 @@ public class LikeDbStorage implements LikeStorage {
             return;
         }
 
-        String sql = "INSERT INTO likes (film_id, user_id) VALUES (?, ?) " +
-                "ON CONFLICT (film_id, user_id) DO NOTHING";
+        String sql = "INSERT INTO likes (film_id, user_id) VALUES (?, ?)";
 
         jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
             @Override
