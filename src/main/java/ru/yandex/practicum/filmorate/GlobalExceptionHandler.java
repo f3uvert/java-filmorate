@@ -80,6 +80,7 @@ public class GlobalExceptionHandler {
                 "message", e.getClass().getName() + ": " + e.getMessage()
         );
     }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleDataIntegrityViolationException(DataIntegrityViolationException e) {
