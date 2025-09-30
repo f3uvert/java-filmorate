@@ -15,7 +15,7 @@ public class MinReleaseDateValidator implements ConstraintValidator<MinReleaseDa
     @Override
     public boolean isValid(LocalDate releaseDate, ConstraintValidatorContext context) {
         if (releaseDate == null) {
-            return true;
+            return true; // @NotNull уже обработает это
         }
         return !releaseDate.isBefore(minDate);
     }
