@@ -20,12 +20,11 @@ import java.util.stream.Collectors;
 @Repository
 @Primary
 @Qualifier("filmDbStorage")
-@RequiredArgsConstructor
 public class FilmDbStorage implements FilmStorage {
 
-    private final JdbcTemplate jdbcTemplate;
-    private final LikeStorage likeStorage;
-    private final GenreStorage genreStorage;
+    private JdbcTemplate jdbcTemplate;
+    private LikeStorage likeStorage;
+    private GenreStorage genreStorage;
 
     private final RowMapper<Film> filmRowMapper = (rs, rowNum) -> {
         Film film = new Film();
@@ -67,6 +66,12 @@ public class FilmDbStorage implements FilmStorage {
 
         return film;
     };
+
+    public FilmDbStorage(JdbcTemplate jdbcTemplate, LikeStorage likeStorage, GenreStorage genreStorage) {
+        this.jdbcTemplate = jdbcTemplate;
+        this.likeStorage = likeStorage;
+        this.genreStorage = genreStorage;
+    }
 
     @Override
     public List<Film> getAll() {
