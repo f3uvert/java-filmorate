@@ -52,7 +52,11 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public List<Film> getAll() {
-        String sql = "SELECT * FROM films ORDER BY id";
+        String sql = "SELECT f.id as film_id, f.name, f.description, f.release_date, f.duration, " +
+                "f.mpa_id, m.name as mpa_name " +
+                "FROM films f " +
+                "LEFT JOIN mpa_ratings m ON f.mpa_id = m.id " +
+                "ORDER BY f.id";
         return jdbcTemplate.query(sql, filmRowMapper);
     }
 
