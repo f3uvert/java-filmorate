@@ -43,8 +43,8 @@ public class FilmDbStorage implements FilmStorage {
         film.setDuration(rs.getInt("duration"));
 
         Film.Mpa mpa = new Film.Mpa();
-        mpa.setId(rs.getInt("mpa_id"));
-        mpa.setName(rs.getString("mpa_name"));
+        mpa.setId(rs.getInt("id"));
+        mpa.setName(rs.getString("name"));
         film.setMpa(mpa);
 
         return film;
