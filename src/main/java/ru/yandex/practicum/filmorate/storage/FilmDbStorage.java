@@ -46,6 +46,8 @@ public class FilmDbStorage implements FilmStorage {
         mpa.setName(rs.getString("mpa_name"));
         film.setMpa(mpa);
 
+        film.setGenres(new ArrayList<>());
+
         return film;
     };
 
