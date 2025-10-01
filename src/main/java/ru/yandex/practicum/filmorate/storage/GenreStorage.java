@@ -8,10 +8,4 @@ public interface GenreStorage {
     List<Film.Genre> getAllGenres();
 
     Optional<Film.Genre> getGenreById(int id);
-
-    void updateGenresForFilm(int id, List<Film.Genre> genresToUpdate);
-
-    void saveGenresForFilm(int id, List<Film.Genre> genres);
-
-    List<Film.Genre> getGenresForFilm(int id);
 }

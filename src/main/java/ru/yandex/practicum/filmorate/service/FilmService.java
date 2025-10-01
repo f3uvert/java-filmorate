@@ -64,6 +64,10 @@ public class FilmService {
     }
 
     public void addLike(int filmId, int userId) {
+        userStorage.getById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id " + userId + " не найден"));
+
+        getById(filmId);
         likeStorage.addLike(filmId, userId);
     }
 

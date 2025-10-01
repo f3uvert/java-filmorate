@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.storage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Primary;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -46,15 +47,17 @@ public class FilmDbStorage implements FilmStorage {
         mpa.setName(rs.getString("mpa_name"));
         film.setMpa(mpa);
 
-        film.setGenres(new ArrayList<>());
-
         return film;
     };
 
     @Override
     public List<Film> getAll() {
-        String sql = "SELECT f.id as film_id, f.name, f.description, f.release_date, f.duration, " +
-                "f.mpa_id, m.name as mpa_name " +
+        String sql = "SELECT f.id, f.name, f.description, f.release_date, f.duration, " +
+                "f.mpa_id, m.name as mpa_name, " +
+                "COALESCE((SELECT JSON_ARRAYAGG(JSON_OBJECT('id', g.id, 'name', g.name)) " +
+                "          FROM film_genres fg " +
+                "          JOIN genres g ON fg.genre_id = g.id " +
+                "          WHERE fg.film_id = f.id), JSON_ARRAY()) as genres " +
                 "FROM films f " +
                 "LEFT JOIN mpa_ratings m ON f.mpa_id = m.id " +
                 "ORDER BY f.id";
@@ -77,7 +80,12 @@ public class FilmDbStorage implements FilmStorage {
             return stmt;
         }, keyHolder);
 
-        film.setId(keyHolder.getKey().intValue());
+        int filmId = keyHolder.getKey().intValue();
+        film.setId(filmId);
+
+        // Сохраняем жанры отдельным запросом
+        saveGenresForFilm(filmId, film.getGenres());
+
         return film;
     }
 
@@ -96,56 +104,38 @@ public class FilmDbStorage implements FilmStorage {
         if (updated == 0) {
             throw new NotFoundException("Фильм с id " + film.getId() + " не найден");
         }
+        updateGenresForFilm(film.getId(), film.getGenres());
         return film;
     }
 
     @Override
     public Optional<Film> getById(int id) {
-        String filmSql = "SELECT f.id, f.name, f.description, f.release_date, f.duration, " +
-                "f.mpa_id, m.name as mpa_name " +
+        String sql = "SELECT f.id, f.name, f.description, f.release_date, f.duration, " +
+                "f.mpa_id, m.name as mpa_name, " +
+                "COALESCE((SELECT JSON_ARRAYAGG(JSON_OBJECT('id', g.id, 'name', g.name)) " +
+                "          FROM film_genres fg " +
+                "          JOIN genres g ON fg.genre_id = g.id " +
+                "          WHERE fg.film_id = f.id), JSON_ARRAY()) as genres " +
                 "FROM films f " +
                 "LEFT JOIN mpa_ratings m ON f.mpa_id = m.id " +
                 "WHERE f.id = ?";
 
         try {
-            Film film = jdbcTemplate.queryForObject(filmSql, filmRowMapper, id);
-            if (film != null) {
-                loadGenresForFilm(film);
-            }
-            return Optional.ofNullable(film);
+            Film film = jdbcTemplate.queryForObject(sql, filmRowMapper, id);
+            return Optional.of(film);
         } catch (Exception e) {
             return Optional.empty();
         }
-    }
-
-    private void loadGenresForFilm(Film film) {
-        String genresSql = "SELECT g.id, g.name FROM genres g " +
-                "JOIN film_genres fg ON g.id = fg.genre_id " +
-                "WHERE fg.film_id = ? ORDER BY g.id";
-
-        List<Film.Genre> genres = jdbcTemplate.query(genresSql,
-                (rs, rowNum) -> {
-                    Film.Genre genre = new Film.Genre();
-                    genre.setId(rs.getInt("id"));
-                    genre.setName(rs.getString("name"));
-                    return genre;
-                },
-                film.getId()
-        );
-
-        film.setGenres(genres);
-    }
-
-    @Override
-    public void delete(int id) {
-        String sql = "DELETE FROM films WHERE id = ?";
-        jdbcTemplate.update(sql, id);
     }
 
     @Override
     public List<Film> getPopular(int count) {
         String sql = "SELECT f.id, f.name, f.description, f.release_date, f.duration, " +
                 "f.mpa_id, m.name as mpa_name, " +
+                "COALESCE((SELECT JSON_ARRAYAGG(JSON_OBJECT('id', g.id, 'name', g.name)) " +
+                "          FROM film_genres fg " +
+                "          JOIN genres g ON fg.genre_id = g.id " +
+                "          WHERE fg.film_id = f.id), JSON_ARRAY()) as genres, " +
                 "COALESCE(l.like_count, 0) as like_count " +
                 "FROM films f " +
                 "LEFT JOIN mpa_ratings m ON f.mpa_id = m.id " +
@@ -155,36 +145,52 @@ public class FilmDbStorage implements FilmStorage {
                 "    GROUP BY film_id" +
                 ") l ON f.id = l.film_id " +
                 "ORDER BY like_count DESC, f.id " +
-                "LIMIT " + count;
+                "LIMIT ?";
 
-        return jdbcTemplate.query(sql, filmRowMapper);
+        return jdbcTemplate.query(sql, filmRowMapper, count);
     }
 
-    private void validateMpaExists(int mpaId) {
-        String sql = "SELECT COUNT(*) FROM mpa_ratings WHERE id = ?";
-        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, mpaId);
-
-        if (count == null || count == 0) {
-            throw new NotFoundException("MPA рейтинг с id " + mpaId + " не найден");
-        }
-    }
-
-    private void validateGenresExist(List<Film.Genre> genres) {
+    private void saveGenresForFilm(int filmId, List<Film.Genre> genres) {
         if (genres == null || genres.isEmpty()) {
             return;
         }
-
-        Set<Integer> genreIds = genres.stream()
-                .map(Film.Genre::getId)
+        Set<Film.Genre> uniqueGenres = genres.stream()
+                .collect(Collectors.toMap(
+                        Film.Genre::getId,
+                        genre -> genre,
+                        (existing, replacement) -> existing
+                ))
+                .values()
+                .stream()
                 .collect(Collectors.toSet());
 
-        String placeholders = String.join(",", Collections.nCopies(genreIds.size(), "?"));
-        String sql = "SELECT COUNT(*) FROM genres WHERE id IN (" + placeholders + ")";
+        String sql = "INSERT INTO film_genres (film_id, genre_id) VALUES (?, ?)";
 
-        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, genreIds.toArray());
+        jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps, int i) throws SQLException {
+                Film.Genre genre = new ArrayList<>(uniqueGenres).get(i);
+                ps.setInt(1, filmId);
+                ps.setInt(2, genre.getId());
+            }
 
-        if (count == null || count != genreIds.size()) {
-            throw new NotFoundException("Один или несколько жанров не найдены");
-        }
+            @Override
+            public int getBatchSize() {
+                return uniqueGenres.size();
+            }
+        });
+    }
+
+    private void updateGenresForFilm(int filmId, List<Film.Genre> genres) {
+        String deleteSql = "DELETE FROM film_genres WHERE film_id = ?";
+        jdbcTemplate.update(deleteSql, filmId);
+
+        saveGenresForFilm(filmId, genres);
+    }
+
+    @Override
+    public void delete(int id) {
+        String sql = "DELETE FROM films WHERE id = ?";
+        jdbcTemplate.update(sql, id);
     }
 }
