@@ -44,6 +44,7 @@ public class FilmDbStorage implements FilmStorage {
 
         Film.Mpa mpa = new Film.Mpa();
         mpa.setId(rs.getInt("mpa_id"));
+        mpa.setName(rs.getString("mpa_name"));
         film.setMpa(mpa);
 
         return film;
