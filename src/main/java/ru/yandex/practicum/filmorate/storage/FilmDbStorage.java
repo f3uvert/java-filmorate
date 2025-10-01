@@ -23,12 +23,10 @@ import java.util.stream.Collectors;
 public class FilmDbStorage implements FilmStorage {
 
     private final JdbcTemplate jdbcTemplate;
-    private final GenreStorage genreStorage;
 
     @Autowired
-    public FilmDbStorage(JdbcTemplate jdbcTemplate, GenreStorage genreStorage) {
+    public FilmDbStorage(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
-        this.genreStorage = genreStorage;
     }
 
     private final RowMapper<Film> filmRowMapper = (rs, rowNum) -> {
@@ -49,21 +47,26 @@ public class FilmDbStorage implements FilmStorage {
         mpa.setName(rs.getString("mpa_name"));
         film.setMpa(mpa);
 
+        film.setGenres(new ArrayList<>());
+
         return film;
     };
 
     @Override
     public List<Film> getAll() {
         String sql = "SELECT f.id, f.name, f.description, f.release_date, f.duration, " +
-                "f.mpa_id, m.name as mpa_name, " +
-                "COALESCE((SELECT JSON_ARRAYAGG(JSON_OBJECT('id', g.id, 'name', g.name)) " +
-                "          FROM film_genres fg " +
-                "          JOIN genres g ON fg.genre_id = g.id " +
-                "          WHERE fg.film_id = f.id), JSON_ARRAY()) as genres " +
+                "f.mpa_id, m.name as mpa_name " +
                 "FROM films f " +
                 "LEFT JOIN mpa_ratings m ON f.mpa_id = m.id " +
                 "ORDER BY f.id";
-        return jdbcTemplate.query(sql, filmRowMapper);
+
+        List<Film> films = jdbcTemplate.query(sql, filmRowMapper);
+
+        for (Film film : films) {
+            film.setGenres(getGenresForFilm(film.getId()));
+        }
+
+        return films;
     }
 
     @Override
@@ -82,12 +85,10 @@ public class FilmDbStorage implements FilmStorage {
             return stmt;
         }, keyHolder);
 
-        film.setId(keyHolder.getKey().intValue());
+        int filmId = keyHolder.getKey().intValue();
+        film.setId(filmId);
 
-        // Сохраняем жанры после создания фильма
-        if (film.getGenres() != null && !film.getGenres().isEmpty()) {
-            genreStorage.saveGenresForFilm(film.getId(), film.getGenres());
-        }
+        saveGenresForFilm(filmId, film.getGenres());
 
         return film;
     }
@@ -114,17 +115,16 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public Optional<Film> getById(int id) {
         String sql = "SELECT f.id, f.name, f.description, f.release_date, f.duration, " +
-                "f.mpa_id, m.name as mpa_name, " +
-                "COALESCE((SELECT JSON_ARRAYAGG(JSON_OBJECT('id', g.id, 'name', g.name)) " +
-                "          FROM film_genres fg " +
-                "          JOIN genres g ON fg.genre_id = g.id " +
-                "          WHERE fg.film_id = f.id), JSON_ARRAY()) as genres " +
+                "f.mpa_id, m.name as mpa_name " +
                 "FROM films f " +
                 "LEFT JOIN mpa_ratings m ON f.mpa_id = m.id " +
                 "WHERE f.id = ?";
 
         try {
             Film film = jdbcTemplate.queryForObject(sql, filmRowMapper, id);
+            if (film != null) {
+                film.setGenres(getGenresForFilm(id));
+            }
             return Optional.of(film);
         } catch (Exception e) {
             return Optional.empty();
@@ -135,10 +135,6 @@ public class FilmDbStorage implements FilmStorage {
     public List<Film> getPopular(int count) {
         String sql = "SELECT f.id, f.name, f.description, f.release_date, f.duration, " +
                 "f.mpa_id, m.name as mpa_name, " +
-                "COALESCE((SELECT JSON_ARRAYAGG(JSON_OBJECT('id', g.id, 'name', g.name)) " +
-                "          FROM film_genres fg " +
-                "          JOIN genres g ON fg.genre_id = g.id " +
-                "          WHERE fg.film_id = f.id), JSON_ARRAY()) as genres, " +
                 "COALESCE(l.like_count, 0) as like_count " +
                 "FROM films f " +
                 "LEFT JOIN mpa_ratings m ON f.mpa_id = m.id " +
@@ -150,13 +146,32 @@ public class FilmDbStorage implements FilmStorage {
                 "ORDER BY like_count DESC, f.id " +
                 "LIMIT ?";
 
-        return jdbcTemplate.query(sql, filmRowMapper, count);
+        List<Film> films = jdbcTemplate.query(sql, filmRowMapper, count);
+        for (Film film : films) {
+            film.setGenres(getGenresForFilm(film.getId()));
+        }
+
+        return films;
+    }
+
+    private List<Film.Genre> getGenresForFilm(int filmId) {
+        String sql = "SELECT g.id, g.name FROM genres g " +
+                "JOIN film_genres fg ON g.id = fg.genre_id " +
+                "WHERE fg.film_id = ? ORDER BY g.id";
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            Film.Genre genre = new Film.Genre();
+            genre.setId(rs.getInt("id"));
+            genre.setName(rs.getString("name"));
+            return genre;
+        }, filmId);
     }
 
     private void saveGenresForFilm(int filmId, List<Film.Genre> genres) {
         if (genres == null || genres.isEmpty()) {
             return;
         }
+
         Set<Film.Genre> uniqueGenres = genres.stream()
                 .collect(Collectors.toMap(
                         Film.Genre::getId,
