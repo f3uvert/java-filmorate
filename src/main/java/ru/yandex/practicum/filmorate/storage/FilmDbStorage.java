@@ -121,18 +121,20 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public List<Film> getPopular(int count) {
-        String sql = "SELECT f.*, " +
-                "COALESCE(like_counts.like_count, 0) as likes_count " +
+        String sql = "SELECT f.id, f.name, f.description, f.release_date, f.duration, " +
+                "f.mpa_id, m.name as mpa_name, " +
+                "COALESCE(l.like_count, 0) as like_count " +
                 "FROM films f " +
+                "LEFT JOIN mpa_ratings m ON f.mpa_id = m.id " +
                 "LEFT JOIN (" +
                 "    SELECT film_id, COUNT(user_id) as like_count " +
                 "    FROM likes " +
                 "    GROUP BY film_id" +
-                ") like_counts ON f.id = like_counts.film_id " +
-                "ORDER BY likes_count DESC, f.id " +
-                "LIMIT ?";
+                ") l ON f.id = l.film_id " +
+                "ORDER BY like_count DESC, f.id " +
+                "LIMIT " + count;
 
-        return jdbcTemplate.query(sql, filmRowMapper, count);
+        return jdbcTemplate.query(sql, filmRowMapper);
     }
 
     private void validateMpaExists(int mpaId) {
