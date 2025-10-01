@@ -23,10 +23,12 @@ import java.util.stream.Collectors;
 public class FilmDbStorage implements FilmStorage {
 
     private final JdbcTemplate jdbcTemplate;
+    private final GenreStorage genreStorage;
 
     @Autowired
-    public FilmDbStorage(JdbcTemplate jdbcTemplate) {
+    public FilmDbStorage(JdbcTemplate jdbcTemplate, GenreStorage genreStorage) {
         this.jdbcTemplate = jdbcTemplate;
+        this.genreStorage = genreStorage;
     }
 
     private final RowMapper<Film> filmRowMapper = (rs, rowNum) -> {
@@ -80,11 +82,12 @@ public class FilmDbStorage implements FilmStorage {
             return stmt;
         }, keyHolder);
 
-        int filmId = keyHolder.getKey().intValue();
-        film.setId(filmId);
+        film.setId(keyHolder.getKey().intValue());
 
-        // Сохраняем жанры отдельным запросом
-        saveGenresForFilm(filmId, film.getGenres());
+        // Сохраняем жанры после создания фильма
+        if (film.getGenres() != null && !film.getGenres().isEmpty()) {
+            genreStorage.saveGenresForFilm(film.getId(), film.getGenres());
+        }
 
         return film;
     }

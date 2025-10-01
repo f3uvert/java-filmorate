@@ -43,4 +43,9 @@ public class GenreDbStorage implements GenreStorage {
             return Optional.empty();
         }
     }
+
+    @Override
+    public void saveGenresForFilm(int id, List<Film.Genre> genres) {
+
+    }
 }

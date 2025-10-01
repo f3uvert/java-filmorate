@@ -8,4 +8,6 @@ public interface GenreStorage {
     List<Film.Genre> getAllGenres();
 
     Optional<Film.Genre> getGenreById(int id);
+
+    void saveGenresForFilm(int id, List<Film.Genre> genres);
 }
