@@ -23,12 +23,10 @@ import java.util.Optional;
 public class UserDbStorage implements UserStorage {
 
     private final JdbcTemplate jdbcTemplate;
-    private final FriendStorage friendStorage;
 
     @Autowired
     public UserDbStorage(JdbcTemplate jdbcTemplate, FriendStorage friendStorage) {
         this.jdbcTemplate = jdbcTemplate;
-        this.friendStorage = friendStorage;
     }
 
     private final RowMapper<User> userRowMapper = (rs, rowNum) -> {
@@ -119,21 +117,32 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public void addFriend(int userId, int friendId) {
-        friendStorage.addFriend(userId, friendId);
+        String sql = "INSERT INTO friends (user_id, friend_id, confirmed) VALUES (?, ?, false)";
+        jdbcTemplate.update(sql, userId, friendId);
     }
 
     @Override
     public void removeFriend(int userId, int friendId) {
-        friendStorage.removeFriend(userId, friendId);
+        String sql = "DELETE FROM friends WHERE user_id = ? AND friend_id = ?";
+        jdbcTemplate.update(sql, userId, friendId);
     }
 
     @Override
     public List<User> getFriends(int userId) {
-        return friendStorage.getFriends(userId);
+        String sql = "SELECT u.* FROM users u " +
+                "JOIN friends f ON u.id = f.friend_id " +
+                "WHERE f.user_id = ? " +
+                "ORDER BY u.id";
+        return jdbcTemplate.query(sql, userRowMapper, userId);
     }
 
     @Override
     public List<User> getCommonFriends(int userId, int otherId) {
-        return friendStorage.getCommonFriends(userId, otherId);
+        String sql = "SELECT u.* FROM users u " +
+                "JOIN friends f1 ON u.id = f1.friend_id " +
+                "JOIN friends f2 ON u.id = f2.friend_id " +
+                "WHERE f1.user_id = ? AND f2.user_id = ? " +
+                "ORDER BY u.id";
+        return jdbcTemplate.query(sql, userRowMapper, userId, otherId);
     }
 }
