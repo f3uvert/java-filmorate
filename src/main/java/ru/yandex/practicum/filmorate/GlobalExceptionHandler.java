@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -69,7 +70,7 @@ public class GlobalExceptionHandler {
         );
     }
 
-    // Дополнительный обработчик для отладки - можно удалить после тестирования
+
     @ExceptionHandler(Throwable.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Map<String, String> handleThrowable(Throwable e) {
@@ -77,6 +78,24 @@ public class GlobalExceptionHandler {
         return Map.of(
                 "error", "Внутренняя ошибка сервера",
                 "message", e.getClass().getName() + ": " + e.getMessage()
+        );
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Map<String, String> handleDataIntegrityViolationException(DataIntegrityViolationException e) {
+        log.warn("Нарушение целостности данных: {}", e.getMessage());
+
+        String message = "Ошибка целостности данных";
+        if (e.getMessage().contains("CHK_RELEASE_DATE")) {
+            message = "Дата релиза — не раньше 28 декабря 1895 года";
+        } else if (e.getMessage().contains("CHK_DURATION_POSITIVE")) {
+            message = "Продолжительность фильма должна быть положительным числом";
+        }
+
+        return Map.of(
+                "error", "Ошибка валидации",
+                "message", message
         );
     }
 }

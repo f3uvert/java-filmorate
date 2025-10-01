@@ -48,6 +48,8 @@ public class InMemoryUserStorage implements UserStorage {
         users.remove(id);
     }
 
+    private final Map<Integer, Set<Integer>> friends = new HashMap<>();
+
     @Override
     public void addFriend(int userId, int friendId) {
         User user = getById(userId)
@@ -55,8 +57,8 @@ public class InMemoryUserStorage implements UserStorage {
         User friend = getById(friendId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + friendId + " не найден"));
 
-        user.getFriends().add(friendId);
-        friend.getFriends().add(userId);
+        friends.computeIfAbsent(userId, k -> new HashSet<>()).add(friendId);
+        friends.computeIfAbsent(friendId, k -> new HashSet<>()).add(userId);
     }
 
     @Override
@@ -66,8 +68,12 @@ public class InMemoryUserStorage implements UserStorage {
         User friend = getById(friendId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + friendId + " не найден"));
 
-        user.getFriends().remove(friendId);
-        friend.getFriends().remove(userId);
+        if (friends.containsKey(userId)) {
+            friends.get(userId).remove(friendId);
+        }
+        if (friends.containsKey(friendId)) {
+            friends.get(friendId).remove(userId);
+        }
     }
 
     @Override
@@ -75,7 +81,8 @@ public class InMemoryUserStorage implements UserStorage {
         User user = getById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + userId + " не найден"));
 
-        return user.getFriends().stream()
+        Set<Integer> userFriends = friends.getOrDefault(userId, Collections.emptySet());
+        return userFriends.stream()
                 .map(this::getById)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
@@ -89,8 +96,11 @@ public class InMemoryUserStorage implements UserStorage {
         User otherUser = getById(otherId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + otherId + " не найден"));
 
-        Set<Integer> commonFriendIds = new HashSet<>(user.getFriends());
-        commonFriendIds.retainAll(otherUser.getFriends());
+        Set<Integer> userFriends = friends.getOrDefault(userId, Collections.emptySet());
+        Set<Integer> otherFriends = friends.getOrDefault(otherId, Collections.emptySet());
+
+        Set<Integer> commonFriendIds = new HashSet<>(userFriends);
+        commonFriendIds.retainAll(otherFriends);
 
         return commonFriendIds.stream()
                 .map(this::getById)
