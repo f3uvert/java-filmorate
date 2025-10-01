@@ -46,6 +46,12 @@ public class FilmDbStorage implements FilmStorage {
         mpa.setName(rs.getString("mpa_name"));
         film.setMpa(mpa);
 
+        int genreId = rs.getInt("genre_id");
+        Film.Genre genre = new Film.Genre();
+        genre.setId(genreId);
+        genre.setName(rs.getString("genre_name"));
+        film.getGenres().add(genre);
+
         return film;
     };
 
