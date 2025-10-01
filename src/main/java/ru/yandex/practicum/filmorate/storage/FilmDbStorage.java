@@ -100,15 +100,17 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Optional<Film> getById(int id) {
-        String sql = "SELECT * FROM films WHERE id = ?";
+        String sql = "SELECT f.id as film_id, f.name, f.description, f.release_date, f.duration, " +
+                "f.mpa_id, m.name as mpa_name " +
+                "FROM films f " +
+                "LEFT JOIN mpa_ratings m ON f.mpa_id = m.id " +
+                "WHERE f.id = ?";
         try {
             Film film = jdbcTemplate.queryForObject(sql, filmRowMapper, id);
             return Optional.ofNullable(film);
-        } catch (EmptyResultDataAccessException e) {
-            return Optional.empty();
         } catch (Exception e) {
             System.err.println("Error getting film by id " + id + ": " + e.getMessage());
-            throw new RuntimeException("Error getting film by id " + id, e);
+            return Optional.empty();
         }
     }
 
