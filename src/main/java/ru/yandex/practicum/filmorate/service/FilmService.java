@@ -6,6 +6,7 @@ import ru.yandex.practicum.filmorate.NotFoundException;
 import ru.yandex.practicum.filmorate.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.LikeStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.util.List;
@@ -17,14 +18,16 @@ public class FilmService {
     private final UserStorage userStorage;
     private final MpaService mpaService;
     private final GenreService genreService;
+    private final LikeStorage likeStorage;
 
     @Autowired
     public FilmService(FilmStorage filmStorage, UserStorage userStorage,
-                       MpaService mpaService, GenreService genreService) {
+                       MpaService mpaService, GenreService genreService, LikeStorage likeStorage) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
         this.mpaService = mpaService;
         this.genreService = genreService;
+        this.likeStorage = likeStorage;
     }
 
     public List<Film> getAll() {
@@ -61,23 +64,11 @@ public class FilmService {
     }
 
     public void addLike(int filmId, int userId) {
-        userStorage.getById(userId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с id " + userId + " не найден"));
-
-        filmStorage.getById(filmId)
-                .orElseThrow(() -> new NotFoundException("Фильм с id " + filmId + " не найден"));
-
-        filmStorage.addLike(filmId, userId);
+        likeStorage.addLike(filmId, userId);
     }
 
     public void removeLike(int filmId, int userId) {
-        userStorage.getById(userId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с id " + userId + " не найден"));
-
-        filmStorage.getById(filmId)
-                .orElseThrow(() -> new NotFoundException("Фильм с id " + filmId + " не найден"));
-
-        filmStorage.removeLike(filmId, userId);
+        likeStorage.removeLike(filmId, userId);
     }
 
     public List<Film> getPopular(int count) {
