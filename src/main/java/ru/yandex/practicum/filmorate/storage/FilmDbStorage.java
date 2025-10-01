@@ -99,18 +99,39 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Optional<Film> getById(int id) {
-        String sql = "SELECT f.id as film_id, f.name, f.description, f.release_date, f.duration, " +
+        String filmSql = "SELECT f.id, f.name, f.description, f.release_date, f.duration, " +
                 "f.mpa_id, m.name as mpa_name " +
                 "FROM films f " +
                 "LEFT JOIN mpa_ratings m ON f.mpa_id = m.id " +
                 "WHERE f.id = ?";
+
         try {
-            Film film = jdbcTemplate.queryForObject(sql, filmRowMapper, id);
+            Film film = jdbcTemplate.queryForObject(filmSql, filmRowMapper, id);
+            if (film != null) {
+                loadGenresForFilm(film);
+            }
             return Optional.ofNullable(film);
         } catch (Exception e) {
-            System.err.println("Error getting film by id " + id + ": " + e.getMessage());
             return Optional.empty();
         }
+    }
+
+    private void loadGenresForFilm(Film film) {
+        String genresSql = "SELECT g.id, g.name FROM genres g " +
+                "JOIN film_genres fg ON g.id = fg.genre_id " +
+                "WHERE fg.film_id = ? ORDER BY g.id";
+
+        List<Film.Genre> genres = jdbcTemplate.query(genresSql,
+                (rs, rowNum) -> {
+                    Film.Genre genre = new Film.Genre();
+                    genre.setId(rs.getInt("id"));
+                    genre.setName(rs.getString("name"));
+                    return genre;
+                },
+                film.getId()
+        );
+
+        film.setGenres(genres);
     }
 
     @Override
